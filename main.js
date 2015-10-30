@@ -1,5 +1,5 @@
 var app = require('app');	// Module to control application life.
-var BrowserWindow = require('browser-window');	// Module to create native browser window.
+var browser = require('./browser.js');
 
 // Report crashes
 require('crash-reporter').start();
@@ -18,17 +18,7 @@ app.on('window-all-closed', function() {
 // This method will be called when Electron has finished initialization and is ready to create browser windows.
 app.on('ready', function() {
 	// Create the browser window.
-	mainWindow = new BrowserWindow({
-		"web-preferences": {
-			"node-integration": false,
-			"web-security": true,
-			"allow-displaying-insecure-content": false,
-			"allow-running-insecure-content": false
-		}
-	});
-
-	// and load the index.html of the app.
-	mainWindow.loadUrl('https://tweetdeck.twitter.com');
+	mainWindow = browser.openUrl('https://tweetdeck.twitter.com', true)
 
 	// Emitted when the window is closed.
 	mainWindow.on('closed', function() {
@@ -37,4 +27,11 @@ app.on('ready', function() {
 		// when you should delete the corresponding element.
 		mainWindow = null;
 	});
+
+	mainWindow.webContents.on('new-window', function(event, url, frameName, disposition, options) {
+		browser.openUrl(url)
+		event.preventDefault();
+	});
 });
+
+

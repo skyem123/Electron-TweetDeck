@@ -8,5 +8,8 @@
   },
   "devDependencies": {
     "electron-prebuilt": "^0.34.0"
+  },
+  "dependencies": {
+    "open": "0.0.5"
   }
 }
