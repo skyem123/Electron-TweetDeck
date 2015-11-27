@@ -1,5 +1,22 @@
-var openExternal = require("open"); // To open the default browser.
-var BrowserWindow = require('browser-window');	// Module to create native browser window.
+var openExternal = require("open") // To open the default browser.
+var BrowserWindow = require('browser-window')	// Module to create native browser window.
+
+
+var browserWindows = [] // An array of internal browser windows.
+
+function cleanUp(window) {
+	var position
+
+	if (browserWindows[window] !== undefined) { position = window }
+	else { position = browserWindows.indexOf(window) }
+
+	if (position === -1) {
+		throw new Error("Cannot clean up a browser window that is not in the browser window list")
+	} else {
+		browserWindows[position] = undefined
+	}
+}
+
 
 // Our default web preferences
 var defaultWebPreferences = {
@@ -9,32 +26,46 @@ var defaultWebPreferences = {
 	"allow-running-insecure-content": false
 }
 
-var browserWindows = [] // An array of internal browser windows.
-
-function openInternal(url) {
+function openTrusted(url) {
 	var newWindow = new BrowserWindow({"web-preferences": defaultWebPreferences})
-	browserWindows[browserWindows.push(newWindow)-1].loadUrl(url)
+
+	newWindow.webContents.on('new-window', function(event, url, frameName, disposition, options) {
+		openUrl(url)
+		event.preventDefault()
+	})
+
+	newWindow.on('close', function() {
+		cleanUp(newWindow)
+	})
+
+	newWindow.loadUrl(url)
+
+	browserWindows[browserWindows.push(newWindow)-1] // Save the window
 	return newWindow
 }
 
+
 // Open the window either with an external browser or the built in one.
-function openUrl(url, internal) {
+// Note that secure only applies when internal is true.
+// trusted is used for things like twitter's settings pages
+function openUrl(url, internal, trusted) {
 	if (internal === undefined) {
 		// TODO: Use a regex to decide if the "internal" or external browser should be used.
 		internal = false;
 	}
-	if (internal) {
-		return openInternal(url);
+
+	if (!internal) {
+		openExternal(url)
+	} else if (trusted) {
+		openTrusted(url)
 	} else {
-		openExternal(url, function(error) {
-			if(error) { // If the browser didn't open for some reason, then we need to open it in our own window. TODO: stop it from popping up an error message box?
-				openUrl(url, true)
-			}
-		});
+		// TODO: Make an internal web browser for non trusted pages
+		throw new Error("Internal web browser for untrusted pages is not yet implemented.")
 	}
 }
 
 // Export the functions
 module.exports = {
-	"openUrl": openUrl
+	"openUrl": openUrl,
+	"cleanUp": cleanUp
 }
